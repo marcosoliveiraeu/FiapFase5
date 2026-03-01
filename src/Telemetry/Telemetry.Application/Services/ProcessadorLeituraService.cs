@@ -75,7 +75,7 @@ namespace Telemetry.Application.Services
                         Status = StatusAlerta.Aberto,
                         InicioUtc = leituraAntes!.DataHoraLeituraUtc, 
                         CriadoEmUtc = DateTime.UtcNow,
-                        Detalhes = "Umidade do solo < 30% mantida por pelo menos 24h (janela robusta)."
+                        Detalhes = "Umidade do solo < 30% mantida por pelo menos 24h."
                     };
 
                     await _alertas.AdicionarAsync(alerta, ct);
@@ -84,7 +84,7 @@ namespace Telemetry.Application.Services
             }
             else
             {
-                // Fechamento simples: se existir alerta aberto e a leitura atual normalizou, fecha
+                //  se existir alerta aberto e a leitura atual normalizou, fecha
                 if (alertaAberto is not null && request.UmidadeSolo >= LIMIAR_SECA)
                 {
                     alertaAberto.Status = StatusAlerta.Fechado;
@@ -99,7 +99,7 @@ namespace Telemetry.Application.Services
         private async Task AvaliarGeadaAsync(RegistrarLeituraRequest request, CancellationToken ct)
         {
             const decimal LIMIAR_ABRE = 2m;   // <= 2°C por 2h
-            const decimal LIMIAR_FECHA = 4m;  // fecha quando >= 4°C (histerese)
+            const decimal LIMIAR_FECHA = 4m;  // fecha quando >= 4°C 
             var janelaInicio = request.DataHoraLeituraUtc.AddHours(-2);
 
             var leiturasJanela = await _leituras.ConsultarDesdeAsync(request.TalhaoId, janelaInicio, ct);
@@ -131,7 +131,7 @@ namespace Telemetry.Application.Services
             }
             else
             {
-                // Fechamento com histerese: só fecha quando "passou bem" do limite
+                // só fecha quando do limite de abertura para evitar oscilações
                 if (alertaAberto is not null && request.Temperatura >= LIMIAR_FECHA)
                 {
                     alertaAberto.Status = StatusAlerta.Fechado;
@@ -144,81 +144,6 @@ namespace Telemetry.Application.Services
         }
 
 
-        /*
-        public async Task ProcessarLeituraAsync(RegistrarLeituraRequest request, CancellationToken ct)
-        {
-            // 1) Salva leitura
-            var leitura = new LeituraSensor
-            {
-                TalhaoId = request.TalhaoId,
-                DataHoraLeituraUtc = request.DataHoraLeituraUtc,
-                UmidadeSolo = request.UmidadeSolo,
-                Temperatura = request.Temperatura,
-                Precipitacao = request.Precipitacao,
-                RecebidoEmUtc = DateTime.UtcNow
-            };
-
-            await _leituras.AdicionarAsync(leitura, ct);
-            await _leituras.SalvarAsync(ct);
-
-            // 2) Regra de Seca: umidade < 30% por > 24h
-            // Pegamos as leituras das últimas 24h (a partir do timestamp recebido)
-            var janelaInicio = request.DataHoraLeituraUtc.AddHours(-24);
-
-            var leiturasJanela = await _leituras.ConsultarDesdeAsync(request.TalhaoId, janelaInicio, ct);
-
-            // Critérios mínimos para ser “por 24h”:
-            // - Deve haver leitura >= janelaInicio e <= agora
-            // - E a diferença entre a leitura mais antiga e a mais nova deve ser >= 24h
-            if (leiturasJanela.Count == 0)
-                return;
-
-            var ordenadas = leiturasJanela
-            .OrderBy(x => x.DataHoraLeituraUtc)
-            .ToList();
-
-            var primeira = ordenadas.First();
-            var ultima = ordenadas.Last();
-
-            var cobre24h = (ultima.DataHoraLeituraUtc - primeira.DataHoraLeituraUtc) >= TimeSpan.FromHours(24);
-
-            // Condição de seca: todas as leituras na janela < 30
-            var todasAbaixo30 = ordenadas.All(x => x.UmidadeSolo < 30);
-
-            var alertaAberto = await _alertas.ObterAlertaAbertoAsync(request.TalhaoId, TipoAlerta.Seca, ct);
-
-            if (cobre24h && todasAbaixo30)
-            {
-                // Abre alerta se não existir
-                if (alertaAberto is null)
-                {
-                    var alerta = new Alerta
-                    {
-                        TalhaoId = request.TalhaoId,
-                        Tipo = TipoAlerta.Seca,
-                        Status = StatusAlerta.Aberto,
-                        InicioUtc = primeira.DataHoraLeituraUtc,
-                        CriadoEmUtc = DateTime.UtcNow,
-                        Detalhes = "Umidade do solo < 30% por mais de 24h."
-                    };
-
-                    await _alertas.AdicionarAsync(alerta, ct);
-                    await _alertas.SalvarAsync(ct);
-                }
-            }
-            else
-            {
-                // Fecha alerta se existir e leitura atual não está abaixo do limite
-                if (alertaAberto is not null && request.UmidadeSolo >= 30)
-                {
-                    alertaAberto.Status = StatusAlerta.Fechado;
-                    alertaAberto.FimUtc = request.DataHoraLeituraUtc;
-                    alertaAberto.FechadoEmUtc = DateTime.UtcNow;
-
-                    await _alertas.SalvarAsync(ct);
-                }
-            }
-        }
-        */
+       
     }
 }
