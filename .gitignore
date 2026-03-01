@@ -29,6 +29,11 @@ secrets.json
 appsettings.*.Local.json
 appsettings.Local.json
 
+#kubernet secrets
+.k8s/
+k8s/
+app-secrets.yaml
+
 # IDEs
 .vscode/
 .idea/
