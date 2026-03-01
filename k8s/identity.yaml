@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity
+  namespace: fiapfase5
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: identity
+  template:
+    metadata:
+      labels:
+        app: identity
+    spec:
+      containers:
+        - name: identity
+          image: fiap/identity:1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ConnectionStrings__DefaultConnection
+              value: "Server=sqlserver,1433;Database=DB_Fase5_Identity;User Id=sa;Password=Fiap@123;TrustServerCertificate=True"
+            - name: Jwt__SecretKey
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: JWT_SECRET_KEY
+            - name: Jwt__Issuer
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: JWT_ISSUER
+            - name: Jwt__Audience
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: JWT_AUDIENCE
+            - name: Jwt__ExpiresInMinutes
+              value: "2000"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: identity
+  namespace: fiapfase5
+spec:
+  selector:
+    app: identity
+  ports:
+    - port: 80
+      targetPort: 8080
